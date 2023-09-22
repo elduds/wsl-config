@@ -1,0 +1,67 @@
+---
+  - hosts: localhost
+    become: true
+    become_user: root
+    tasks:
+      - name: update apt cache
+        apt:
+          update_cache: yes
+          cache_valid_time: 3600
+      - name: install packages
+        package:
+          name:
+            - zsh
+            - ca-certificates
+            - curl
+            - gnupg
+          state: latest
+      - name: create apt keyrings directory
+        file:
+          dest: /etc/apt/keyrings/
+          state: directory
+          mode: '0755'
+      - name: docker gpg key
+        get_url:
+          url: https://download.docker.com/linux/ubuntu/gpg
+          dest: /etc/apt/keyrings/docker.asc
+          mode: '0644'
+      - name: Get DEB architecture
+        shell: dpkg --print-architecture
+        register: deb_architecture
+      - name: add docker repo
+        apt_repository:
+          repo: "deb [arch={{ deb_architecture.stdout }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+          state: present
+      - name: update apt cache
+        apt:
+          update_cache: yes
+      - name: install docker
+        package:
+          name:
+            - docker-ce
+            - docker-ce-cli
+            - containerd.io
+            - docker-buildx-plugin
+            - docker-compose-plugin
+          state: latest
+      - name: configure git identity
+        become: false
+        ini_file:
+          path: "{{ ansible_env.HOME }}/.gitconfig"
+          section: user
+          option: email
+          value: luke.dudney@fortescue.com
+      - name: configure git identity
+        become: false
+        ini_file:
+          path: "{{ ansible_env.HOME }}/.gitconfig"
+          section: user
+          option: name
+          value: Luke Dudney
+      - name: configure GCM
+        become: false
+        ini_file:
+          path: "{{ ansible_env.HOME }}/.gitconfig"
+          section: credential
+          option: helper
+          value: "/mnt/c/Users/ldudney/AppData/Local/Programs/Common/Git/mingw64/bin/git-credential-manager.exe"
