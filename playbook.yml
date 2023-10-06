@@ -3,11 +3,6 @@
     become: true
     become_user: root
     tasks:
-      - name: apt keyrings directory
-        file:
-          dest: /etc/apt/keyrings/
-          state: directory
-          mode: '0755'
       - name: install packages
         package:
           name:
@@ -17,11 +12,6 @@
             - gnupg
             - python3-pip
             - python3-virtualenv
-          state: present
-      - name: install terraform
-        package:
-          name:
-            - terraform
           state: present
       - name: configure git identity
         vars:
