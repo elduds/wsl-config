@@ -1,27 +1,11 @@
 ---
   - hosts: localhost
-
     become: true
     become_user: root
     tasks:
       - name: set home fact
         set_fact: home_dir="/home/luke"
-      - name: update apt cache
-        apt:
-          update_cache: yes
-          cache_valid_time: 3600
-      - name: install packages
-        package:
-          name:
-            - zsh
-            - ca-certificates
-            - curl
-            - gnupg
-            - python3-pip
-            - python3-virtualenv
-            - unzip
-          state: latest
-      - name: create apt keyrings directory
+      - name: apt keyrings directory
         file:
           dest: /etc/apt/keyrings/
           state: directory
@@ -50,6 +34,18 @@
       - name: update apt cache
         apt:
           update_cache: yes
+          cache_valid_time: 3600
+      - name: install packages
+        package:
+          name:
+            - zsh
+            - ca-certificates
+            - curl
+            - gnupg
+            - python3-pip
+            - python3-virtualenv
+            - unzip
+          state: present
       - name: install docker
         package:
           name:
@@ -63,7 +59,7 @@
         package:
           name:
             - terraform
-          state: latest
+          state: present
       - name: configure git identity
         become: false
         ini_file:
@@ -103,8 +99,13 @@
           path: "/opt/aws/bin"
           state: directory
       - name: configure awscli
-        copy:
-          dest: /home/luke/.aws/config
-          content: |-
-            [default]
-            region = ap-southeast-2
+        ini_file:
+          path: /home/luke/.aws/config
+          section: default
+          option: region
+          value: ap-southeast-2
+      - name: configure zsh path
+        lineinfile:
+          dest: "{{ home_dir }}/.zshrc"
+          regexp: '^export PATH.*'
+          line: "export PATH=$PATH:~/bin/:/opt/aws/bin"
