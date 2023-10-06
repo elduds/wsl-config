@@ -3,6 +3,13 @@
     become: true
     become_user: root
     tasks:
+      - name: Get DEB architecture
+        shell: dpkg --print-architecture
+        register: deb_architecture
+      - name: add hashicorp repo
+        apt_repository:
+          repo: "deb [arch={{ deb_architecture.stdout }} signed-by=/etc/apt/keyrings/hashicorp.asc]  https://apt.releases.hashicorp.com {{ ansible_distribution_release }} main"
+          state: present
       - name: install packages
         package:
           name:
@@ -12,6 +19,12 @@
             - gnupg
             - python3-pip
             - python3-virtualenv
+            - terraform
+          state: present
+      - name: install python packages
+        pip:
+          name:
+            - pre-commit
           state: present
       - name: configure git identity
         vars:
@@ -62,8 +75,28 @@
     become: true
     become_user: root
     roles:
+     - role: gantsign.oh-my-zsh
+       oh_my_zsh_theme:
+       users:
+        - username: "{{ local_user }}"
      - role: deekayen.awscli2
      - role: geerlingguy.docker
        docker_edition: ce
        docker_users:
         - "{{ local_user }}"
+    tasks:
+      - name: set p10k theme
+        lineinfile:
+          dest: "{{ home_dir }}/.zshrc"
+          regexp: "^ZSH_THEME=.*"
+          line: 'ZSH_THEME="powerlevel10k/powerlevel10k"'
+      - name: configure p10k
+        vars:
+          ansible_become: false
+        copy:
+          src: files/.p10k.zsh
+          dest: "{{ home_dir }}/.p10k.zsh"
+      - name: set p10k theme
+        lineinfile:
+          dest: "{{ home_dir }}/.zshrc"
+          line: "[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh"
