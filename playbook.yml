@@ -3,38 +3,11 @@
     become: true
     become_user: root
     tasks:
-      - name: set home fact
-        set_fact: home_dir="/home/luke"
       - name: apt keyrings directory
         file:
           dest: /etc/apt/keyrings/
           state: directory
           mode: '0755'
-      - name: hashicorp gpg key
-        get_url:
-          url: https://apt.releases.hashicorp.com/gpg
-          dest: /etc/apt/keyrings/hashicorp.asc
-          mode: '0644'
-      - name: docker gpg key
-        get_url:
-          url: https://download.docker.com/linux/ubuntu/gpg
-          dest: /etc/apt/keyrings/docker.asc
-          mode: '0644'
-      - name: Get DEB architecture
-        shell: dpkg --print-architecture
-        register: deb_architecture
-      - name: add hashicorp repo
-        apt_repository:
-          repo: "deb [arch={{ deb_architecture.stdout }} signed-by=/etc/apt/keyrings/hashicorp.asc]  https://apt.releases.hashicorp.com {{ ansible_distribution_release }} main"
-          state: present
-      - name: add docker repo
-        apt_repository:
-          repo: "deb [arch={{ deb_architecture.stdout }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
-          state: present
-      - name: update apt cache
-        apt:
-          update_cache: yes
-          cache_valid_time: 3600
       - name: install packages
         package:
           name:
@@ -44,68 +17,63 @@
             - gnupg
             - python3-pip
             - python3-virtualenv
-            - unzip
           state: present
-      - name: install docker
-        package:
-          name:
-            - docker-ce
-            - docker-ce-cli
-            - containerd.io
-            - docker-buildx-plugin
-            - docker-compose-plugin
-          state: latest
       - name: install terraform
         package:
           name:
             - terraform
           state: present
       - name: configure git identity
-        become: false
+        vars:
+          ansible_become: false
         ini_file:
           path: "{{ home_dir }}/.gitconfig"
           section: user
           option: email
-          value: luke.dudney@fortescue.com
+          value: "{{ user_email }}"
       - name: configure git identity
-        become: false
+        vars:
+          ansible_become: false
         ini_file:
           path: "{{ home_dir }}/.gitconfig"
           section: user
           option: name
-          value: Luke Dudney
+          value: "{{ user_fullname }}"
       - name: configure GCM
-        become: false
+        vars:
+          ansible_become: false
         ini_file:
           path: "{{ home_dir }}/.gitconfig"
           section: credential
           option: helper
-          value: "/mnt/c/Users/ldudney/AppData/Local/Programs/Git/mingw64/bin/git-credential-manager.exe"
-      - name: Download AWS CLIv2
-        get_url:
-          url: "https://awscli.amazonaws.com/awscli-exe-linux-{{ ansible_architecture }}.zip"
-          dest: /tmp/
-      - name: unzip AWS CLIv2
-        unarchive:
-          dest: /tmp/
-          remote_src: yes
-          src: "/tmp/awscli-exe-linux-{{ ansible_architecture }}.zip"
-      - name: Install AWS CLIv2
-        shell:
-          cmd: "/tmp/aws/install --update"
-          chdir: /tmp/
-      - name: Create /opt/aws/bin
-        file:
-          path: "/opt/aws/bin"
-          state: directory
+          value: "{{ gcm_path }}"
       - name: configure awscli
+        vars:
+          ansible_become: false
         ini_file:
-          path: /home/luke/.aws/config
+          path: "{{ home_dir }}/.aws/config"
           section: default
           option: region
           value: ap-southeast-2
+      - name: zprofile
+        vars:
+          ansible_become: false
+        file:
+          path: "{{ home_dir }}/.zprofile"
+          state: touch
       - name: configure zsh path
+        vars:
+          ansible_become: false
         lineinfile:
-          dest: "{{ home_dir }}/.zshrc"
+          dest: "{{ home_dir }}/.zprofile"
           regexp: '^export PATH.*'
           line: "export PATH=$PATH:~/bin/:/opt/aws/bin"
+  - hosts: localhost
+    become: true
+    become_user: root
+    roles:
+     - role: deekayen.awscli2
+     - role: geerlingguy.docker
+       docker_edition: ce
+       docker_users:
+        - "{{ local_user }}"
