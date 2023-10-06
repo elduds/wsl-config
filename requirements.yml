@@ -1,0 +1,5 @@
+---
+roles:
+  - deekayen.awscli2
+  - geerlingguy.docker
+  - gantsign.oh-my-zsh

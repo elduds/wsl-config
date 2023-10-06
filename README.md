@@ -1,11 +1,12 @@
 # WSL Ubuntu Development Environment
-This installs and configures the components required for a local development environment running Ubuntu 22.04+ on WSL2.
+This installs and configures the components required for my local development environment running Ubuntu 22.04+ on WSL2.
 
 Includes:
 - ansible
 - docker
+- terraform
 - zsh, ohmyzsh and powerlevel10k theme
-- git config
+- git config and credential manager
 - aws cli v2
 
 ## Install
